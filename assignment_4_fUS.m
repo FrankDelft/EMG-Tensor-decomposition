@@ -80,45 +80,30 @@ PDI_matrix = reshape(PDI, Nz * Nx, Nt);
 clear P Pg Pgf
 %%
 %%%% Calculate the best correlation lag and show the correlation image %%%%
+pc_image = [];
 
-
-max_delay = 10; % Maximum delay to consider
-PCC={};
-avg_abs=zeros([max_delay,1]);
-for delay = 1:max_delay
+max_delay = round(10*Fs);
+max_corr = 0;
+max_corr_delay = 0;
+for delay=0:max_delay
     shifted_stim = [zeros(delay, 1); stim(1:end-delay)];
-    pc_image = zeros([Nz,Nx]);  
-    for i = 1:Nz
-        for j = 1:Nx
-            slice = squeeze(PDI(i, j, :));
-            R = corr(slice, shifted_stim,'Type','Pearson');
-            if abs(R) > 0.36
-                pc_image(i, j) = abs(R);
-            else
-                pc_image(i, j) = 0; 
-            end
-            avg_abs(delay) = avg_abs(delay) + abs(R)/(Nz*Nx);
-        end
+    r = corr(shifted_stim, PDI_matrix')';
+    if mean(abs(r))>max_corr
+        max_corr_delay = delay;
+        max_corr = mean(abs(r));
+        pc_image = r;
     end
-    fprintf('Average absolute correlation at delay %d: %f\n', delay, avg_abs);
-    PCC{delay}=pc_image;
 end
 
-[~,best_delay]=max(avg_abs);
+corr_thresh = 0.36;
+pc_image(abs(pc_image)<corr_thresh) = 0;
+pc_image = reshape(pc_image, Nz, Nx);
 
-% Plot the correlation image for the current delay
-    plot_version = 1;
-    display_brain_img(PCC{best_delay}, log(mean_PDI), z_axis, x_axis, ...
-        sprintf('Significantly Correlated Regions (Delay = %d)', best_delay), plot_version);
-% % Two ways to visualize the correlation image are provided -->
-% plot_version = 1;
-% display_brain_img(pc_image, log(mean_PDI), z_axis, x_axis,...
-%     'Significantly Correlated Regions', plot_version);
-% 
-% plot_version = 2;
-% display_brain_img(pc_image, log(mean_PDI), z_axis, x_axis,...
-%     'Significantly Correlated Regions', plot_version);
-%%
+% Two ways to visualize the correlation image are provided -->
+plot_version = 1;
+display_brain_img(pc_image(:,:,1), log(mean_PDI), z_axis, x_axis,...
+    'Significantly Correlated Regions', plot_version);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%% CPD %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % You can use hidden_cpd_als_3d.m for this part.
 % Include plots for all your claims (you can use display_brain_img.m to 
