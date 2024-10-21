@@ -95,13 +95,12 @@ for delay=0:max_delay
     end
 end
 
+% Threshold resulting corrolation images
 corr_thresh = 0.36;
 pc_image(abs(pc_image)<corr_thresh) = 0;
 pc_image = reshape(pc_image, Nz, Nx);
 
-
-
-% Two ways to visualize the correlation image are provided -->
+% Visualize results
 plot_version = 1;
 display_brain_img(pc_image(:,:,1), log(mean_PDI), z_axis, x_axis,...
     'Significantly Correlated Regions', plot_version);
@@ -113,13 +112,15 @@ display_brain_img(pc_image(:,:,1), log(mean_PDI), z_axis, x_axis,...
 % You can use hidden_cpd_als_3d.m for this part.
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
-R1 = 5:10; % Range of ranks to test
+R1 = 5:7; % Range of ranks to test
 options.maxiter = 300; 
 options.th_relerr = 0.6;
 
 num_ranks = length(R1);
-num_cols = 4; % Number of columns for subplots
-num_rows = ceil(num_ranks / num_cols); % Number of rows for subplots
+num_rows = num_ranks;
+num_cols = max(R1)+1;
+
+shifted_stim = [zeros(best_delay, 1); stim(1:end-best_delay)];
 
 figure;
 for idx = 1:num_ranks
@@ -127,31 +128,23 @@ for idx = 1:num_ranks
     [B1, B2, B3, c, output] = cpd_als_3d(PDI, r, options);
 
     % Correlate the stim with the best delay value with each of the columns of B3
-    shifted_stim = [zeros(best_delay, 1); stim(1:end-best_delay)];
-    correlations = zeros(size(B3, 2), 1);
-
-    for k = 1:size(B3, 2)
-        correlations(k) = abs(corr(shifted_stim, B3(:, k), 'Type', 'Pearson'));
-    end
+    correlations = abs(corr(shifted_stim, B3));
 
     % Display the correlations and spatial map in subplots
-    subplot(num_rows, num_cols * 2, (idx - 1) * 2 + 1);
+    subplot(num_rows, num_cols, (idx-1)*num_cols + 1);
     bar(correlations);
     xlabel('Component');
-    ylabel('Correlation with Stimulus');
+    ylabel('Temporal Correlation with Stimulus');
     title(['Rank = ' num2str(r)]);
     
     % Reconstruct and display the spatial map
-    spatial_map_cpd = zeros(size(B1, 1), size(B2, 1));
-    for i = 1:r
-        spatial_map_cpd = spatial_map_cpd + B1(:, i) * (B2(:, i).');
+    for comp = 1:r
+        subplot(num_rows, num_cols, (idx-1)*num_cols + 1 + comp);
+        imagesc(x_axis, z_axis, B1(:, comp) * (B2(:, comp).'));
+        xlabel('Width [mm]');
+        ylabel('Depth [mm]');
+        title(['Spatial Map Rank' num2str(r) ' Component ' num2str(comp)]);
     end
-    
-    subplot(num_rows, num_cols * 2, (idx - 1) * 2 + 2);
-    imagesc(x_axis, z_axis, spatial_map_cpd);
-    xlabel('Width [mm]');
-    ylabel('Depth [mm]');
-    title(['Spatial Map Rank = ' num2str(r)]);
 end
 
 %%
@@ -159,9 +152,3 @@ end
 % Fill in btd_ll1_als_3d.m.
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
-
-options.maxiter = 300; 
-options.th_relerr = 0.6;
-R2=5;
-Lr=2;
-[A, B, C, const, output] = btd_ll1_als_3d(PDI, R2, Lr, options)
