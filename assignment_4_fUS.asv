@@ -99,21 +99,18 @@ corr_thresh = 0.36;
 pc_image(abs(pc_image)<corr_thresh) = 0;
 pc_image = reshape(pc_image, Nz, Nx);
 
-
+pc
 
 % Two ways to visualize the correlation image are provided -->
 plot_version = 1;
 display_brain_img(pc_image(:,:,1), log(mean_PDI), z_axis, x_axis,...
     'Significantly Correlated Regions', plot_version);
-
-
-
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%% CPD %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % You can use hidden_cpd_als_3d.m for this part.
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
-R1 = 5:7; % Range of ranks to test
+R1 = 5:20; % Range of ranks to test
 options.maxiter = 300; 
 options.th_relerr = 0.6;
 
@@ -125,6 +122,15 @@ figure;
 for idx = 1:num_ranks
     r = R1(idx);
     [B1, B2, B3, c, output] = cpd_als_3d(PDI, r, options);
+    
+    % Plot the relative error vs iterations
+    figure;
+    semilogy(output.relerr)
+    grid on
+    xlabel('Iteration number')
+    ylabel('Relative error $\frac{\| T-T_{dec} \|_F}{\| T\|_F}$','interpreter','latex');
+    title(['Relative error of the decomposition (Rank = ' num2str(r) ')'])
+    disp(['The algorithm stopped after # iterations: ' num2str(output.numiter)])
 
     % Correlate the stim with the best delay value with each of the columns of B3
     shifted_stim = [zeros(best_delay, 1); stim(1:end-best_delay)];
@@ -134,24 +140,30 @@ for idx = 1:num_ranks
         correlations(k) = abs(corr(shifted_stim, B3(:, k), 'Type', 'Pearson'));
     end
 
-    % Display the correlations and spatial map in subplots
-    subplot(num_rows, num_cols * 2, (idx - 1) * 2 + 1);
+    % Display the correlations in subplots
+    subplot(num_rows, num_cols, idx);
     bar(correlations);
     xlabel('Component');
     ylabel('Correlation with Stimulus');
     title(['Rank = ' num2str(r)]);
+end
+
+figure;
+for idx = 1:num_ranks
+    r = R1(idx);
+    [B1, B2, B3, c, output] = cpd_als_3d(PDI, r, options);
     
-    % Reconstruct and display the spatial map
+    % Reconstruct and display the spatial map in subplots
     spatial_map_cpd = zeros(size(B1, 1), size(B2, 1));
     for i = 1:r
         spatial_map_cpd = spatial_map_cpd + B1(:, i) * (B2(:, i).');
     end
     
-    subplot(num_rows, num_cols * 2, (idx - 1) * 2 + 2);
+    subplot(num_rows, num_cols, idx);
     imagesc(x_axis, z_axis, spatial_map_cpd);
     xlabel('Width [mm]');
     ylabel('Depth [mm]');
-    title(['Spatial Map Rank = ' num2str(r)]);
+    title(['Rank = ' num2str(r)]);
 end
 
 %%
