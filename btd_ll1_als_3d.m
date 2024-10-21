@@ -65,20 +65,20 @@ for idxiter = 1:maxiter
     kron_cat=[];
     for i=1:R
         Br=B(:,1+(i-1)*Lr:i*Lr);
-        temp=kron(C(:,i),Br).';
+        temp=kron(C(:,i),Br);
         kron_cat=[kron_cat temp];        
     end
-    A = T1 * pinv(kron_cat);
+    A = T1 * pinv(kron_cat.');
     A = normc(A);
 
 
     kron_cat=[];
     for i=1:R
         Ar=A(:,1+(i-1)*Lr:i*Lr);
-        temp=kron(C(:,i),Ar).';
+        temp=kron(C(:,i),Ar);
         kron_cat=[kron_cat temp];        
     end
-    B=T2*pinv(kron_cat);
+    B=T2*pinv(kron_cat.');
     B=normc(B);
 
     khatri_cat=[];

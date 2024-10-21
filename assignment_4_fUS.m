@@ -113,7 +113,7 @@ display_brain_img(pc_image(:,:,1), log(mean_PDI), z_axis, x_axis,...
 % You can use hidden_cpd_als_3d.m for this part.
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
-R1 = 5:7; % Range of ranks to test
+R1 = 5:10; % Range of ranks to test
 options.maxiter = 300; 
 options.th_relerr = 0.6;
 
@@ -159,3 +159,9 @@ end
 % Fill in btd_ll1_als_3d.m.
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
+
+options.maxiter = 300; 
+options.th_relerr = 0.6;
+R2=5;
+Lr=2;
+[A, B, C, const, output] = btd_ll1_als_3d(PDI, R2, Lr, options)
