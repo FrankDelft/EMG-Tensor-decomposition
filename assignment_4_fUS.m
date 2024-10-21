@@ -78,18 +78,18 @@ Pgf = reshape(filtfilt(b, a, PDImatrix')', size(PDI));
 PDI = Pgf;
 PDI_matrix = reshape(PDI, Nz * Nx, Nt);
 clear P Pg Pgf
-%%
+
 %%%% Calculate the best correlation lag and show the correlation image %%%%
 pc_image = [];
 
 max_delay = round(10*Fs);
 max_corr = 0;
-max_corr_delay = 0;
+best_delay = 0;
 for delay=0:max_delay
     shifted_stim = [zeros(delay, 1); stim(1:end-delay)];
     r = corr(shifted_stim, PDI_matrix')';
     if mean(abs(r))>max_corr
-        max_corr_delay = delay;
+        best_delay = delay;
         max_corr = mean(abs(r));
         pc_image = r;
     end
