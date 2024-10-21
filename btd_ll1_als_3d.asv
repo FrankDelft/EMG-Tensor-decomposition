@@ -1,0 +1,113 @@
+function [A, B, C, const, output] = btd_ll1_als_3d(T, R, Lr, options, varargin)
+% BTD_LL1_ALS_3D Computes the (Lr,Lr,1) block-term decomposition (BTD) of a
+% 3rd-order tensor using the alternative least squares algorithm (ALS).
+%
+% INPUT:
+%   T (I_1 x I_2 x I_3): 3-D tensor data tensor
+%   R (1 x 1): number of BTD components (sources)
+%   Lr (1 x R): Ranks of the factor matrices in the first and second mode for
+%               all components
+%   options (struct): optimization options including:
+%          - th_relerr (1 x 1): relative error threshold
+%          - maxiter   (1 x 1): max number of iterations
+%   variable extra inputs (1 x 3 cell array OR 3 arrays, OPTIONAL): 
+%           initialization for the factor matrices
+%
+% OUTPUT:
+%   A (I_1 x sum(Lr)): mode-1 factor matrix
+%   B (I_2 x sum(Lr)): mode-2 factor matrix 
+%   C (I_3 x R): mode-3 factor matrix with normalized columns 
+%   const (1 x R):  vector containing the respective weights for the BTD
+%           components
+%   output (struct) : optimization options including:
+%          - numiter (1 x 1): the number of iterations the algorithm ran for
+%          - relerr (1 x numiter): relative error achieved, defined as 
+%           Frobenius norm of the residual of the decomposition OVER 
+%           Frobenius norm of the original tensor.
+% 
+
+maxiter=options.maxiter;
+th_relerr=options.th_relerr;
+
+% Check if the initialization for the factor matrices was given
+init = [];
+if ~isempty(varargin)
+    if length(varargin) == 1    % Given as cell
+        init = varargin{:}; 
+    else                        % Given as matrices 
+        init = varargin;
+    end
+end
+
+% Initialize the three factor matrices 
+if isempty(init)    
+    A = randn(size(T, 1), R*Lr);
+    B = randn(size(T, 2), R*Lr);
+    C = randn(size(T, 3), R);
+else              
+    A = init{1};
+    B = init{2};
+    C = init{3};
+end
+
+%normalise columns
+A = normc(A);
+B = normc(B);
+C = normc(C);
+
+% Obtain the three tensor unfoldings 
+T1 = hidden_mode_n_matricization(T,1);
+T2 = hidden_mode_n_matricization(T,2);
+T3 = hidden_mode_n_matricization(T,3);
+
+% ALS iterations
+for idxiter = 1:maxiter
+    kron_cat=[];
+    for i=1:r
+        Br=B(:,1+(r-1)*Lr:r*Lr);
+        temp=kron(C(:,i),Br).';
+        kron_cat=[kron_cat temp];        
+    end
+    A=T1*pinv(kron_cat);
+
+
+    kron_cat=[];
+    for i=1:r
+        Ar=A(:,1+(r-1)*Lr:r*Lr);
+        temp=kron(C(:,i),Ar).';
+        kron_cat=[kron_cat temp];        
+    end
+    B=T2*pinv(kron_cat);
+
+    kron_cat=[];
+    for i=1:r
+        Ar=A(:,1+(r-1)*Lr:r*Lr);
+        Br=B(:,1+(r-1)*Lr:r*Lr);
+        temp=kron(Br,Ar)*ones([Lr,1]);
+        kron_cat=[kron_cat temp];        
+    end
+    C=T3*pinv(kron_cat);
+    
+
+    kron_cat=[];
+    for i=1:r
+        Ar=A(:,1+(r-1)*Lr:r*Lr);
+        Br=B(:,1+(r-1)*Lr:r*Lr);
+        temp=kron(Br,Ar)*ones([Lr,1]);
+        kron_cat=[kron_cat temp];        
+    end
+    T3_est=C
+
+    err_num = sqrt((T3(:) - T3_est(:))'*(T3(:) - T3_est(:)));  
+    err_den = sqrt(T3(:)'*T3(:));              
+    relerr(idxiter) = err_num / err_den;
+
+    if relerr(idxiter) < th_relerr 
+        break;
+    end
+
+
+end
+
+
+end
