@@ -62,24 +62,28 @@ T3 = hidden_mode_n_matricization(T,3);
 
 % ALS iterations
 for idxiter = 1:maxiter
-    kron_cat=[];
+    kron_cat1=[];
     for i=1:R
         Br=B(:,1+(i-1)*Lr:i*Lr);
         temp=kron(C(:,i),Br);
-        kron_cat=[kron_cat temp];        
+        kron_cat1=[kron_cat1 temp];        
     end
-    A = T1 * pinv(kron_cat.');
-    A = normc(A);
+    A = T1 * pinv(kron_cat1.');
+    % A = normc(A);
+    % A = A ./ sqrt(sum(A.^2, 1)); 
 
+    % A = A ./ vecnorm(A); 
 
-    kron_cat=[];
+    kron_cat2=[];
     for i=1:R
         Ar=A(:,1+(i-1)*Lr:i*Lr);
         temp=kron(C(:,i),Ar);
-        kron_cat=[kron_cat temp];        
+        kron_cat2=[kron_cat2 temp];        
     end
-    B=T2*pinv(kron_cat.');
-    B=normc(B);
+    B = T2 * pinv(kron_cat2.');
+    % B = B ./ sqrt(sum(B.^2, 1));
+    % B=normc(B);
+    % B = B ./ vecnorm(B); 
 
     khatri_cat=[];
     for i=1:R
@@ -89,15 +93,16 @@ for idxiter = 1:maxiter
         khatri_cat=[khatri_cat temp];        
     end
     C=T3*pinv(khatri_cat.');
-    const = vecnorm(C);
-    C=normc(C);
+
+    const=vecnorm(C);
+    C = C ./ const;
+
+    
 
 
     T3_est=C*diag(const)*khatri_cat.';
     
-    err_num = sqrt((T3(:) - T3_est(:))'*(T3(:) - T3_est(:)));  
-    err_den = sqrt(T3(:)'*T3(:));              
-    relerr(idxiter) = err_num / err_den;
+    relerr(idxiter) = norm((T3 - T3_est),"fro") / norm(T3,"fro");
 
     if relerr(idxiter) < th_relerr 
         break;

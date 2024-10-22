@@ -181,3 +181,48 @@ end
 % Fill in btd_ll1_als_3d.m.
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
+
+options.maxiter = 300; 
+options.th_relerr = 0.6;
+R2 = [5];
+% R2=6;
+Lr=2;
+[A, B, C, const, output] = btd_ll1_als_3d(PDI, R2, Lr, options);
+% % Plot the loss curve
+figure;
+plot(output.relerr, 'LineWidth', 2);
+xlabel('Iteration');
+ylabel('Loss');
+set(gca, 'YScale', 'log');
+title('BTD Loss Curve');
+
+
+% 
+% num_ranks = length(R2);
+% 
+% for idx = 1:num_ranks
+%     r = R2(idx);
+%     [A, B, C, const, output] = btd_ll1_als_3d(PDI, r, Lr, options);
+% 
+%     % Correlate the stim with the best delay value with each of the columns of B3
+%     correlations = abs(corr(shifted_stim, C));
+%     bar(correlations);
+%     xlabel('Component');
+%     ylabel('Temporal Correlation with Stimulus');
+%     title(['Rank = ' num2str(r)]);
+%     if ~exist(['./BTD/rank' num2str(r)], 'dir')
+%         mkdir(['./BTD/rank' num2str(r)]);
+%     end
+%     saveas(gcf, ['./BTD/rank' num2str(r) '/barcoeff.jpg']);
+% 
+% 
+% 
+%     % Reconstruct and display the spatial map
+%     for comp = 1:r
+%         imagesc(x_axis, z_axis, A(:, (comp-1)*Lr+1:comp*Lr) * (B(:, (comp-1)*Lr+1:comp*Lr).'));
+%         xlabel('Width [mm]');
+%         ylabel('Depth [mm]');
+%         title(['Spatial Map Rank' num2str(r) ' Component ' num2str(comp)]);
+%         saveas(gcf, ['./BTD/rank' num2str(r) '/' num2str(comp) '.jpg']);
+%     end
+% end
