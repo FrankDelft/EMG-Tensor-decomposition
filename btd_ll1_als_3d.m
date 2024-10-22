@@ -62,11 +62,10 @@ T3 = hidden_mode_n_matricization(T,3);
 
 % ALS iterations
 for idxiter = 1:maxiter
-    kron_cat1=[];
+    kron_cat1=zeros([size(C,1)*size(B,1),Lr*R]);
     for i=1:R
         Br=B(:,1+(i-1)*Lr:i*Lr);
-        temp=kron(C(:,i),Br);
-        kron_cat1=[kron_cat1 temp];        
+        kron_cat1(:,1+(i-1)*Lr:i*Lr)=kron(C(:,i),Br);
     end
     A = T1 * pinv(kron_cat1.');
     % A = normc(A);
@@ -74,23 +73,21 @@ for idxiter = 1:maxiter
 
     % A = A ./ vecnorm(A); 
 
-    kron_cat2=[];
+    kron_cat2=zeros([size(C,1)*size(A,1),Lr*R]);
     for i=1:R
         Ar=A(:,1+(i-1)*Lr:i*Lr);
-        temp=kron(C(:,i),Ar);
-        kron_cat2=[kron_cat2 temp];        
+        kron_cat2(:,1+(i-1)*Lr:i*Lr)=kron(C(:,i),Ar);    
     end
     B = T2 * pinv(kron_cat2.');
     % B = B ./ sqrt(sum(B.^2, 1));
     % B=normc(B);
     % B = B ./ vecnorm(B); 
 
-    khatri_cat=[];
+    khatri_cat=zeros([size(A,1)*size(B,1),R]);
     for i=1:R
         Ar=A(:,1+(i-1)*Lr:i*Lr);
         Br=B(:,1+(i-1)*Lr:i*Lr);
-        temp=hidden_khatri_rao(Br,Ar)*ones([Lr,1]);
-        khatri_cat=[khatri_cat temp];        
+        khatri_cat(:,i)=hidden_khatri_rao(Br,Ar)*ones([Lr,1]);
     end
     C=T3*pinv(khatri_cat.');
 

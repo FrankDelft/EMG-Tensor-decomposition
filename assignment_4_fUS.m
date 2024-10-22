@@ -208,7 +208,7 @@ title('BTD Loss Curve');
 %     correlations = abs(corr(shifted_stim, C));
 %     bar(correlations);
 %     xlabel('Component');
-%     ylabel('Temporal Correlation with Stimulus');
+    %     ylabel('Temporal Correlation with Stimulus');
 %     title(['Rank = ' num2str(r)]);
 %     if ~exist(['./BTD/rank' num2str(r)], 'dir')
 %         mkdir(['./BTD/rank' num2str(r)]);
