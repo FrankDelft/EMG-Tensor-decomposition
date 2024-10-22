@@ -147,6 +147,35 @@ for idx = 1:num_ranks
     end
 end
 
+for comp = 1:r 
+    cor = correlations(comp);
+    if cor > corr_thresh
+
+        % Processing
+        time_comp = B3(:, comp);
+        if corr(shifted_stim, time_comp)<0
+            time_comp = time_comp.*-1;
+        end
+        offset = min(time_comp); 
+        wid = max(time_comp) - min(time_comp);
+        
+
+        % Plotting
+        figure();
+        plot(shifted_stim*wid+offset, 'DisplayName', 'Shifted Stimulus');
+        hold on
+        plot(time_comp, 'DisplayName', ['Component ' num2str(comp)]);
+        hold off
+        
+        % Boilerplate
+        title(['Component ' num2str(comp) ' vs Shifted Stimulus']);
+        xlabel('Time');
+        ylabel('Normalized Amplitude');
+        legend('show');
+        grid on;
+    end
+end
+
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%% BTD %%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Fill in btd_ll1_als_3d.m.
