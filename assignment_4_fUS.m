@@ -105,6 +105,31 @@ plot_version = 1;
 display_brain_img(pc_image(:,:,1), log(mean_PDI), z_axis, x_axis,...
     'Significantly Correlated Regions', plot_version);
 
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% SVD %%%%%%%%%%%%%%%%%%%%%%%%%%%
+[U,S,V] = svd(PDI_matrix, "econ");
+
+shifted_stim = [zeros(best_delay, 1); stim(1:end-best_delay)];
+
+svd_corrs = abs(corr(shifted_stim, V));
+
+figure;
+bar(svd_corrs(1:10));
+for c = maxk(svd_corrs,3)
+    indx = find(svd_corrs == c);
+    
+    figure;
+    subplot(1,2,1);
+    offset = min(V(:,indx)); 
+    wid = max(V(:,indx)) - min(V(:,indx));
+    plot(shifted_stim*wid+offset, 'DisplayName', 'Shifted Stimulus');
+    hold on
+    plot(V(:,indx), 'DisplayName', ['Component ' num2str(indx)]);
+    legend('show');
+    hold off
+    subplot(1,2,2);
+    imagesc(x_axis, z_axis, reshape(U(:,indx), Nz, Nx));
+end
 
 
 %%
