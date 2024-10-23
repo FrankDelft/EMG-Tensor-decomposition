@@ -207,15 +207,18 @@ end
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
 
-R2 = 5:7; % Range of ranks to test
-options.maxiter = 300; 
+R2 = 5:10; % Range of ranks to test
+options.maxiter = 6000; 
 options.th_relerr = 0.6;
-Lr=2;
+Lr=4;
 
 num_ranks = length(R2);
 num_rows = num_ranks;
 num_cols = max(R2)+1;
+shifted_stim=[zeros(best_delay,1);stim(1:end-best_delay)];
 
+
+figures_corr = cell(1, num_ranks);
 figure;
 for idx = 1:num_ranks
     r = R2(idx);
@@ -230,24 +233,34 @@ for idx = 1:num_ranks
     xlabel('Component');
     ylabel('Temporal Correlation with Stimulus');
     title(['Rank = ' num2str(r)]);
-    
+    Spatial_data = struct( 'data', [], 'title', [],'axis_labels',[]);
     % Reconstruct and display the spatial maps
     for comp = 1:r
         subplot(num_rows, num_cols, (idx-1)*num_cols + 1 + comp);
-        imagesc(x_axis, z_axis, A(:, (comp-1)*Lr+1:comp*Lr) * (B(:, (comp-1)*Lr+1:comp*Lr).'));
+        data=A(:, (comp-1)*Lr+1:comp*Lr) * (B(:, (comp-1)*Lr+1:comp*Lr).');
+        imagesc(x_axis, z_axis,data);
         xlabel('Width [mm]');
         ylabel('Depth [mm]');
         title(['Spatial Map Rank' num2str(r) ' Component ' num2str(comp)]);
+
+        Spatial_data(comp).data= data;
+        Spatial_data(comp).axis_labels=["Width [mm]","Depth [mm]"];
+        Spatial_data(comp).title=string(['Component ' num2str(comp)]);
     end
+     figures_corr{idx} = struct('spatial_maps', Spatial_data, 'correlations', correlations);
 end
 
+%%
+
+grid_plot(figures_corr{1}, [1,6],2,x_axis, z_axis)
+%%
 % Identify and plot the most corrolated time courses from the BTD
 for comp = 1:r 
     cor = correlations(comp);
     if cor > corr_thresh
 
         % Processing
-        time_comp = B3(:, comp);
+        time_comp = C(:, comp);
         if corr(shifted_stim, time_comp)<0
             time_comp = time_comp.*-1;
         end
