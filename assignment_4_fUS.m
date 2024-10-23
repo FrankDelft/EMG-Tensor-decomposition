@@ -172,6 +172,7 @@ for idx = 1:num_ranks
     end
 end
 
+% Identify and plot the most corrolated time courses from the CPD
 for comp = 1:r 
     cor = correlations(comp);
     if cor > corr_thresh
@@ -184,7 +185,6 @@ for comp = 1:r
         offset = min(time_comp); 
         wid = max(time_comp) - min(time_comp);
         
-
         % Plotting
         figure();
         plot(shifted_stim*wid+offset, 'DisplayName', 'Shifted Stimulus');
@@ -207,56 +207,108 @@ end
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
 
+R2 = 5:7; % Range of ranks to test
 options.maxiter = 300; 
 options.th_relerr = 0.6;
-R2 = 10:20;
-% R2=6;
 Lr=2;
-% [A, B, C, const, output] = btd_ll1_als_3d(PDI, R2, Lr, options);
-% % Plot the loss curve
-% figure;
-% plot(output.relerr, 'LineWidth', 2);
-% xlabel('Iteration');
-% ylabel('Loss');
-% set(gca, 'YScale', 'log');
-% title('BTD Loss Curve');
-
-
 
 num_ranks = length(R2);
+num_rows = num_ranks;
+num_cols = max(R2)+1;
 
+figure;
 for idx = 1:num_ranks
     r = R2(idx);
     [A, B, C, const, output] = btd_ll1_als_3d(PDI, r, Lr, options);
 
     % Correlate the stim with the best delay value with each of the columns of B3
     correlations = abs(corr(shifted_stim, C));
-    fig2=figure;
+
+    % Display the correlations and spatial map in subplots
+    subplot(num_rows, num_cols, (idx-1)*num_cols + 1);
     bar(correlations);
     xlabel('Component');
-        ylabel('Temporal Correlation with Stimulus');
+    ylabel('Temporal Correlation with Stimulus');
     title(['Rank = ' num2str(r)]);
-  
-
-    dirPath = ['./BTD/rank' num2str(r)];
-    if ~exist(dirPath, 'dir')
-        status = mkdir(dirPath);
-        if status == 0
-            error('Directory creation failed');
-        end
-    end
-
-    saveas(fig2, ['./BTD/rank' num2str(r) '/barcoeff.jpg']);
-
-
-
-    % Reconstruct and display the spatial map
+    
+    % Reconstruct and display the spatial maps
     for comp = 1:r
-        fig1=figure;
+        subplot(num_rows, num_cols, (idx-1)*num_cols + 1 + comp);
         imagesc(x_axis, z_axis, A(:, (comp-1)*Lr+1:comp*Lr) * (B(:, (comp-1)*Lr+1:comp*Lr).'));
         xlabel('Width [mm]');
         ylabel('Depth [mm]');
         title(['Spatial Map Rank' num2str(r) ' Component ' num2str(comp)]);
-        saveas(fig1, ['./BTD/rank' num2str(r) '/' num2str(comp) '.jpg']);
     end
+end
+
+% Identify and plot the most corrolated time courses from the BTD
+for comp = 1:r 
+    cor = correlations(comp);
+    if cor > corr_thresh
+
+        % Processing
+        time_comp = B3(:, comp);
+        if corr(shifted_stim, time_comp)<0
+            time_comp = time_comp.*-1;
+        end
+        offset = min(time_comp); 
+        wid = max(time_comp) - min(time_comp);
+        
+        % Plotting
+        figure();
+        plot(shifted_stim*wid+offset, 'DisplayName', 'Shifted Stimulus');
+        hold on
+        plot(time_comp, 'DisplayName', ['Component ' num2str(comp)]);
+        hold off
+        
+        % Boilerplate
+        title(['Component ' num2str(comp) ' vs Shifted Stimulus']);
+        xlabel('Time');
+        ylabel('Normalized Amplitude');
+        legend('show');
+        grid on;
+    end
+end
+
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% ICA %%%%%%%%%%%%%%%%%%%%%%%%%%%
+R=10;
+
+[icasig, A, W] = icatb_fastICA(PDI_matrix', 'lastEig', 10, 'numOfIC', R);
+
+correlations = abs(corr(shifted_stim, A));
+figure();
+bar(correlations);
+title('Correlations between Shifted Stimulus and Components');
+xlabel('Component Index');
+ylabel('Correlation Magnitude');
+
+% Loop through each component to create individual plots
+for i = 1:R
+    figure();
+    
+    % Spatial component plot
+    subplot(1, 2, 2);
+    spatial_sig = icasig(i, :);
+    spatial_sig(abs(spatial_sig) < 0.25*max(abs(spatial_sig))) = 0;
+    imagesc(x_axis, z_axis, reshape(spatial_sig, Nz, Nx));
+    clim([-max(abs(spatial_sig)), max(abs(spatial_sig))]);
+    title(['Spatial Map of Component ' num2str(i)]);
+    colorbar;
+
+
+    subplot(1, 2, 1);
+    time_sig = A(:, i);
+    offset = min(time_sig);
+    wid = max(time_sig) - min(time_sig);
+
+    plot(shifted_stim * wid + offset, 'DisplayName', 'Shifted Stimulus');
+    hold on;
+    plot(time_sig, 'DisplayName', ['Component ' num2str(i)]);
+    hold off;
+
+    title(['Temporal Signal Comparison for Component ' num2str(i) ' with Corrolation ' num2str(correlations(i))]);
+    xlabel('Time'); % Label for x-axis
+    ylabel('Signal Amplitude'); % Label for y-axis
+    legend(); % Display legend for the two plots
 end
