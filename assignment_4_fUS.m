@@ -114,6 +114,8 @@ shifted_stim = [zeros(best_delay, 1); stim(1:end-best_delay)];
 svd_corrs = abs(corr(shifted_stim, V));
 
 figure;
+% figures_corr_svd = cell(1,maxk(svd_corrs,3));
+% Spatial_data = struct( 'data', [], 'title', [],'axis_labels',[]);
 bar(svd_corrs(1:10));
 for c = maxk(svd_corrs,3)
     indx = find(svd_corrs == c);
@@ -129,6 +131,10 @@ for c = maxk(svd_corrs,3)
     hold off
     subplot(1,2,2);
     imagesc(x_axis, z_axis, reshape(U(:,indx), Nz, Nx));
+
+    % Spatial_data(c).data=reshape(U(:,indx), Nz, Nx);
+    % Spatial_data(c).axis_labels=["Width [mm]","Depth [mm]"];
+    % Spatial_data(c).title=string(['Component ' num2str(c)]);
 end
 
 
@@ -137,7 +143,7 @@ end
 % You can use hidden_cpd_als_3d.m for this part.
 % Include plots for all your claims (you can use display_brain_img.m to 
 % help with the visualization of the spatial maps)
-R1 = 5:7; % Range of ranks to test
+R1 = 5:6; % Range of ranks to test
 options.maxiter = 300; 
 options.th_relerr = 0.6;
 
@@ -146,7 +152,7 @@ num_rows = num_ranks;
 num_cols = max(R1)+1;
 
 shifted_stim = [zeros(best_delay, 1); stim(1:end-best_delay)];
-
+figures_corr_cpd = cell(1, num_ranks);
 figure;
 for idx = 1:num_ranks
     r = R1(idx);
@@ -161,14 +167,20 @@ for idx = 1:num_ranks
     xlabel('Component');
     ylabel('Temporal Correlation with Stimulus');
     title(['Rank = ' num2str(r)]);
-    
+    Spatial_data = struct( 'data', [], 'title', [],'axis_labels',[]);
     % Reconstruct and display the spatial map
     for comp = 1:r
         subplot(num_rows, num_cols, (idx-1)*num_cols + 1 + comp);
-        imagesc(x_axis, z_axis, B1(:, comp) * (B2(:, comp).'));
+        data=B1(:, comp) * (B2(:, comp).');
+        imagesc(x_axis, z_axis, data);
         xlabel('Width [mm]');
         ylabel('Depth [mm]');
         title(['Spatial Map Rank' num2str(r) ' Component ' num2str(comp)]);
+
+        
+        Spatial_data(comp).data= data;
+        Spatial_data(comp).axis_labels=["Width [mm]","Depth [mm]"];
+        Spatial_data(comp).title=string(['Component ' num2str(comp)]);
     end
 end
 
@@ -199,6 +211,7 @@ for comp = 1:r
         legend('show');
         grid on;
     end
+    figures_corr_cpd{idx} = struct('spatial_maps', Spatial_data, 'correlations', correlations);
 end
 
 %%
@@ -218,7 +231,7 @@ num_cols = max(R2)+1;
 shifted_stim=[zeros(best_delay,1);stim(1:end-best_delay)];
 
 
-figures_corr = cell(1, num_ranks);
+figures_corr_btd = cell(1, num_ranks);
 figure;
 for idx = 1:num_ranks
     r = R2(idx);
@@ -247,12 +260,14 @@ for idx = 1:num_ranks
         Spatial_data(comp).axis_labels=["Width [mm]","Depth [mm]"];
         Spatial_data(comp).title=string(['Component ' num2str(comp)]);
     end
-     figures_corr{idx} = struct('spatial_maps', Spatial_data, 'correlations', correlations);
+     figures_corr_btd{idx} = struct('spatial_maps', Spatial_data, 'correlations', correlations);
 end
 
 %%
+% Visualise BTD plots 
+load("figures_corr.mat")
+grid_plot(figures_corr{6}, [1],3,x_axis, z_axis,0.001);
 
-grid_plot(figures_corr{1}, [1,6],2,x_axis, z_axis)
 %%
 % Identify and plot the most corrolated time courses from the BTD
 for comp = 1:r 
@@ -289,6 +304,7 @@ R=10;
 
 [icasig, A, W] = icatb_fastICA(PDI_matrix', 'lastEig', 10, 'numOfIC', R);
 
+
 correlations = abs(corr(shifted_stim, A));
 figure();
 bar(correlations);
@@ -296,20 +312,29 @@ title('Correlations between Shifted Stimulus and Components');
 xlabel('Component Index');
 ylabel('Correlation Magnitude');
 
+
+figures_corr_ICA = cell(1,1);
 % Loop through each component to create individual plots
+Spatial_data = struct( 'data', [], 'title', [],'axis_labels',[]);
 for i = 1:R
     figure();
     
     % Spatial component plot
     subplot(1, 2, 2);
     spatial_sig = icasig(i, :);
+
+    
+    Spatial_data(i).data= reshape(spatial_sig, Nz, Nx);
+    Spatial_data(i).axis_labels=["Width [mm]","Depth [mm]"];
+    Spatial_data(i).title=string(['Component ' num2str(i)]);
+
     spatial_sig(abs(spatial_sig) < 0.25*max(abs(spatial_sig))) = 0;
     imagesc(x_axis, z_axis, reshape(spatial_sig, Nz, Nx));
     clim([-max(abs(spatial_sig)), max(abs(spatial_sig))]);
     title(['Spatial Map of Component ' num2str(i)]);
     colorbar;
 
-
+    
     subplot(1, 2, 1);
     time_sig = A(:, i);
     offset = min(time_sig);
@@ -319,9 +344,14 @@ for i = 1:R
     hold on;
     plot(time_sig, 'DisplayName', ['Component ' num2str(i)]);
     hold off;
-
+    
+    
+    
     title(['Temporal Signal Comparison for Component ' num2str(i) ' with Corrolation ' num2str(correlations(i))]);
     xlabel('Time'); % Label for x-axis
     ylabel('Signal Amplitude'); % Label for y-axis
     legend(); % Display legend for the two plots
 end
+figures_corr_ICA{1} = struct('spatial_maps', Spatial_data, 'correlations', correlations);
+%%
+grid_plot(figures_corr_ICA{1}, [1],2,x_axis, z_axis,0.001)
